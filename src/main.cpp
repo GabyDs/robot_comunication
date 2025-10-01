@@ -64,5 +64,5 @@ void loop(){
     //     mqtt.publish("status", "connected");
     // }
     
-    delay(100); // Dar tiempo al sistema para procesar mensajes
+    delay(200); // Dar tiempo al sistema para procesar mensajes
 }

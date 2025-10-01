@@ -8,6 +8,9 @@ const char* password = "fiounambots";
 // Cambia este ID antes de subir el código a cada robot
 int id_robot = 2;
 
+// Variable para controlar el envío del mensaje inicial
+bool mensaje_inicial_enviado = false;
+
 // Configure static IP to be on the same network as the broker
 IPAddress local_IP(10, 0, 0, 200 + id_robot);    // IP different from broker
 IPAddress gateway(10, 0, 0, 100);                // Gateway
@@ -55,14 +58,18 @@ void loop(){
     // Verificar conexión WiFi cada ciclo
     if (WiFi.status() != WL_CONNECTED) {
         conectarWiFi();
+        mensaje_inicial_enviado = false; // Resetear si se pierde la conexión
     }
 
     mqtt.loop();
     
-    // Publicar estado de conexión periódicamente
-    // if (mqtt.connected()) {
-    //     mqtt.publish("status", "connected");
-    // }
+    // Enviar mensaje "ready" solo una vez cuando se conecta al broker
+    if (mqtt.connected() && !mensaje_inicial_enviado) {
+        char topic[32];
+        snprintf(topic, sizeof(topic), "robot/%d/status", id_robot);
+        mqtt.publish(topic, "ready");
+        mensaje_inicial_enviado = true;
+    }
     
     delay(200); // Dar tiempo al sistema para procesar mensajes
 }

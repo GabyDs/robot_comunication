@@ -1,12 +1,16 @@
 #include <WiFi.h>
 #include <PicoMQTT.h>
+#include <movement.h>
 
 const char* ssid = "Wi-FiUnamBots";
 const char* password = "fiounambots";
 
+// Cambia este ID antes de subir el código a cada robot
+int id_robot = 2;
+
 // Configure static IP to be on the same network as the broker
-IPAddress local_IP(10, 0, 0, 200);    // IP different from broker (99)
-IPAddress gateway(10, 0, 0, 100);      // Gateway
+IPAddress local_IP(10, 0, 0, 200 + id_robot);    // IP different from broker
+IPAddress gateway(10, 0, 0, 100);                // Gateway
 IPAddress subnet(255, 0, 0, 0);
 
 void conectarWiFi() {
@@ -24,10 +28,27 @@ PicoMQTT::Client mqtt(
 );
 
 void setup(){
+    // Init motors (solo una vez al inicio)
+    setupMotors();
+    
     // Conectar al WiFi
     conectarWiFi();
 
     mqtt.begin();
+
+    // Crear el topic dinámico basado en el ID del robot
+    char topic[32];
+    snprintf(topic, sizeof(topic), "robot/%d/action", id_robot);
+    
+    // Subscribe to a topic pattern and attach a callback
+    mqtt.subscribe(topic, [](const char * topic, const char * payload) {
+        String command = String(payload);
+        if (command == "Off"){
+            moveMotors(0, 0);
+        } else if (command == "Forward") {
+            moveMotors(255, 255);
+        }
+    });
 }
 
 void loop(){
@@ -37,7 +58,11 @@ void loop(){
     }
 
     mqtt.loop();
-    mqtt.publish("picomqtt/welcome", "Hello from PicoMQTT!");
     
-    delay(5000); // Verificar cada 5 segundos
+    // Publicar estado de conexión periódicamente
+    // if (mqtt.connected()) {
+    //     mqtt.publish("status", "connected");
+    // }
+    
+    delay(100); // Dar tiempo al sistema para procesar mensajes
 }
